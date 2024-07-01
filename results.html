@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech-to-Text Results</title>
+  <link rel="resultssheet" href="results.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Speech-to-Text Results</h1>
+    <div class="results" id="results"></div>
+  </div>
+  <script>
+    function fetchResults() {
+      fetch('http://localhost:3000/api/results')
+        .then(response => response.json())
+        .then(data => {
+          const resultsElement = document.getElementById('results');
+          resultsElement.innerHTML = data.map(result => `<p>${result}</p>`).join('');
+        })
+        .catch((error) => console.error('Error:', error));
+    }
+
+    // Fetch results every 5 seconds
+    setInterval(fetchResults, 5000);
+    fetchResults();
+  </script>
+</body>
+</html>
