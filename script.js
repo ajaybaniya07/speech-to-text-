@@ -4,10 +4,10 @@ const recordBtn = document.querySelector(".record"),
   inputLanguage = document.querySelector("#language"),
   clearBtn = document.querySelector(".clear");
 
-let SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition,
+let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition,
   recognition,
-  recording = false;
+  recording = false,
+  currentColor = "black";
 
 function populateLanguages() {
   languages.forEach((lang) => {
@@ -37,23 +37,32 @@ function speechToText() {
         return;
       }
 
+      // Check for clear command
+      if (speechResult.includes("clear") || speechResult.includes("clear all")) {
+        clearOutput();
+        return;
+      }
+
       // Check for color change commands
       if (speechResult.includes("camera one") || speechResult.includes("camera 1")){
-        changeTextColor("red");
+        currentColor = "red";
       } else if (speechResult.includes("camera two") || speechResult.includes("camera 2")) {
-        changeTextColor("blue");
+        currentColor = "blue";
       } else if (speechResult.includes("camera three") || speechResult.includes("camera 3")) {
-        changeTextColor("yellow");
+        currentColor = "purple";
       } else if (speechResult.includes("camera four") || speechResult.includes("camera 4")) {
-        changeTextColor("green");
-      }else if (speechResult.includes("normal") || speechResult.includes("change color to black")) {
-        changeTextColor("black");
+        currentColor = "green";
+      } else if (speechResult.includes("normal")) {
+        currentColor = "black";
       }
       
-      // Handle other commands or display text
+      // Handle text display
       if (event.results[0].isFinal) {
-        result.innerHTML += " " + speechResult;
-        result.querySelector("p").remove();
+        const span = document.createElement("span");
+        span.style.color = currentColor;
+        span.textContent = speechResult + " ";
+        result.appendChild(span);
+        result.querySelector("p")?.remove();
       } else {
         if (!document.querySelector(".interim")) {
           const interim = document.createElement("p");
@@ -63,6 +72,7 @@ function speechToText() {
         document.querySelector(".interim").innerHTML = " " + speechResult;
       }
       downloadBtn.disabled = false;
+      autoScroll();
     };
     recognition.onspeechend = () => {
       speechToText();
@@ -75,9 +85,7 @@ function speechToText() {
         alert("Permission to use microphone is blocked.");
       } else if (event.error === "aborted") {
         alert("Listening Stopped.");
-      } else {
-        alert("Error occurred in recognition: " + event.error);
-      }
+      } 
     };
   } catch (error) {
     recording = false;
@@ -85,10 +93,15 @@ function speechToText() {
   }
 }
 
-function changeTextColor(color) {
-  result.style.color = color;
+function autoScroll() {
+  result.scrollTop = result.scrollHeight;
 }
 
+function clearOutput() {
+  result.innerHTML = "";
+  downloadBtn.disabled = true;
+  currentColor = "black";
+}
 
 recordBtn.addEventListener("click", () => {
   if (!recording) {
@@ -126,39 +139,7 @@ function download() {
 
 downloadBtn.addEventListener("click", download);
 
-clearBtn.addEventListener("click", () => {
-  result.innerHTML = "";
-  downloadBtn.disabled = true;
-});
+clearBtn.addEventListener("click", clearOutput);
 
 
-
-
-
-// Function to send result to the server
-function sendResultToServer(result) {
-  fetch('http://localhost:3000/api/results', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ result }),
-  })
-    .then(response => response.json())
-    .then(data => console.log('Success:', data))
-    .catch((error) => console.error('Error:', error));
-}
-
-// Update your existing function that handles the speech recognition result
-function handleResult(event) {
-  const transcript = Array.from(event.results)
-    .map(result => result[0])
-    .map(result => result.transcript)
-    .join('');
-
-  resultElement.textContent = transcript;
-
-  // Send result to the server
-  sendResultToServer(transcript);
-}
 
