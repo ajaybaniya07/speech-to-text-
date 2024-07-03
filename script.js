@@ -22,76 +22,86 @@ populateLanguages();
 
 function speechToText() {
   try {
-    recognition = new SpeechRecognition();
-    recognition.lang = inputLanguage.value;
-    recognition.interimResults = true;
-    recordBtn.classList.add("recording");
-    recordBtn.querySelector("p").innerHTML = "Listening...";
-    recognition.start();
-    recognition.onresult = (event) => {
-      const speechResult = event.results[0][0].transcript.toLowerCase();
-      
-      // Check for stop commands
-      if (speechResult.includes("stop recording") || speechResult.includes("stop listening")) {
-        stopRecording();
-        return;
-      }
+      recognition = new SpeechRecognition();
+      recognition.lang = inputLanguage.value;
+      recognition.interimResults = true;
+      recordBtn.classList.add("recording");
+      recordBtn.querySelector("p").innerHTML = "Listening...";
+      recognition.start();
+      recognition.onresult = (event) => {
+          const speechResult = event.results[0][0].transcript.toLowerCase();
+          
+          // Check for stop commands
+          if (speechResult.includes("stop recording") || speechResult.includes("stop listening")) {
+              stopRecording();
+              return;
+          }
 
-      // Check for clear command
-      if (speechResult.includes("clear") || speechResult.includes("clear all")) {
-        clearOutput();
-        return;
-      }
+          // Check for clear command
+          if (speechResult.includes("clear") || speechResult.includes("clear all")) {
+              clearOutput();
+              return;
+          }
 
-      // Check for color change commands
-      if (speechResult.includes("camera one") || speechResult.includes("camera 1")){
-        currentColor = "red";
-      } else if (speechResult.includes("camera two") || speechResult.includes("camera 2")) {
-        currentColor = "blue";
-      } else if (speechResult.includes("camera three") || speechResult.includes("camera 3")) {
-        currentColor = "purple";
-      } else if (speechResult.includes("camera four") || speechResult.includes("camera 4")) {
-        currentColor = "green";
-      } else if (speechResult.includes("normal")) {
-        currentColor = "black";
-      }
-      
-      // Handle text display
-      if (event.results[0].isFinal) {
-        const span = document.createElement("span");
-        span.style.color = currentColor;
-        span.textContent = speechResult + " ";
-        result.appendChild(span);
-        result.querySelector("p")?.remove();
-      } else {
-        if (!document.querySelector(".interim")) {
-          const interim = document.createElement("p");
-          interim.classList.add("interim");
-          result.appendChild(interim);
-        }
-        document.querySelector(".interim").innerHTML = " " + speechResult;
-      }
-      downloadBtn.disabled = false;
-      autoScroll();
-    };
-    recognition.onspeechend = () => {
-      speechToText();
-    };
-    recognition.onerror = (event) => {
-      stopRecording();
-      if (event.error === "audio-capture") {
-        alert("No microphone was found. Ensure that a microphone is installed.");
-      } else if (event.error === "not-allowed") {
-        alert("Permission to use microphone is blocked.");
-      } else if (event.error === "aborted") {
-        alert("Listening Stopped.");
-      } 
-    };
+          // Check for color change commands
+          if (speechResult.includes("camera one") || speechResult.includes("camera 1")){
+              currentColor = "red";
+          } else if (speechResult.includes("camera two") || speechResult.includes("camera 2")) {
+              currentColor = "blue";
+          } else if (speechResult.includes("camera three") || speechResult.includes("camera 3")) {
+              currentColor = "purple";
+          } else if (speechResult.includes("camera four") || speechResult.includes("camera 4")) {
+              currentColor = "green";
+          } else if (speechResult.includes("normal")) {
+              currentColor = "black";
+          }
+          
+          // Handle text display
+          if (event.results[0].isFinal) {
+              const span = document.createElement("span");
+              span.style.color = currentColor;
+              span.textContent = speechResult + " ";
+              result.appendChild(span);
+              result.querySelector("p")?.remove();
+
+              // Send the result to the server
+              fetch('http://localhost:3000/broadcast', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ text: speechResult })
+              });
+          } else {
+              if (!document.querySelector(".interim")) {
+                  const interim = document.createElement("p");
+                  interim.classList.add("interim");
+                  result.appendChild(interim);
+              }
+              document.querySelector(".interim").innerHTML = " " + speechResult;
+          }
+          downloadBtn.disabled = false;
+          autoScroll();
+      };
+      recognition.onspeechend = () => {
+          speechToText();
+      };
+      recognition.onerror = (event) => {
+          stopRecording();
+          if (event.error === "audio-capture") {
+              alert("No microphone was found. Ensure that a microphone is installed.");
+          } else if (event.error === "not-allowed") {
+              alert("Permission to use microphone is blocked.");
+          } else if (event.error === "aborted") {
+              alert("Listening Stopped.");
+          } 
+      };
   } catch (error) {
-    recording = false;
-    console.log(error);
+      recording = false;
+      console.log(error);
   }
 }
+
 
 function autoScroll() {
   result.scrollTop = result.scrollHeight;
