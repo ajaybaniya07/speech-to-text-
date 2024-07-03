@@ -1,42 +1,30 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const app = express();
 const port = 3000;
 
-// To store results
-let results = [];
+let clients = [];
 
-// Middleware
-app.use(bodyParser.json());
+app.use(express.static(__dirname));
 
-// CORS middleware to allow requests from any origin
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
+app.get('/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    clients.push(res);
+
+    req.on('close', () => {
+        clients = clients.filter(client => client !== res);
+    });
 });
 
-// Endpoint to receive results
-app.post('/api/results', (req, res) => {
-  const result = req.body.result;
-  if (result) {
-    results.push(result);
-    res.status(201).send({ message: 'Result stored' });
-  } else {
-    res.status(400).send({ message: 'Invalid input' });
-  }
-});
-
-// Endpoint to get all results
-app.get('/api/results', (req, res) => {
-  res.status(200).send(results);
+app.post('/broadcast', express.json(), (req, res) => {
+    const message = req.body;
+    clients.forEach(client => client.write(`data: ${JSON.stringify(message)}\n\n`));
+    res.status(200).end();
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Listening on http://localhost:${port}`);
 });
-
-
-
-
-how change my in that the text translation start with black color and when i speak camera one text color should change into green, and when i speak camera two text color chnage into yellow, when i speak camera three text color chnage into blue and when i say camera four text color change into red. The text i mean the output 
